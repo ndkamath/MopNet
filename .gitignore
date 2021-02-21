@@ -1,0 +1,11 @@
+datasets/test
+datasets/_test
+models/classifier
+models/edge
+models/mopnet
+models/VGG
+.idea
+.venv
+.venv2
+__pycache__
+*.pyc

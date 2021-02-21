@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-python test.py --dataroot /media/he/FE2CA0442C9FF5BD/test  --netG 'mopnet/netG_epoch_150.pth' --netE "mopnet/netEdge_epoch_150.pth" --batchSize 2  --originalSize  256 --imageSize 256 --image_path "results" --write 1
+python test.py --dataroot /home/nkamath/Project/github/ndkamath/MopNet/datasets/test --netG /home/nkamath/Project/github/ndkamath/MopNet/models/mopnet/netG_epoch_150.pth --netE /home/nkamath/Project/github/ndkamath/MopNet/models/mopnet/netEdge_epoch_150.pth --batchSize 2 --originalSize 256 --imageSize 256 --image_path results --write 1 --classColor /home/nkamath/Project/github/ndkamath/MopNet/models/classifier/color_epoch_95.pth --classGeo /home/nkamath/Project/github/ndkamath/MopNet/models/classifier/geo_epoch_95.pth

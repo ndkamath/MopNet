@@ -30,34 +30,27 @@ import cv2
 from collections import OrderedDict
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', required=False,
-  default='my_loader',  help='')
-parser.add_argument('--dataroot', required=False,
-  default='', help='path to trn dataset')
+parser.add_argument('--dataset', required=False, default='my_loader',  help='')
+parser.add_argument('--dataroot', required=False, default='', help='path to trn dataset')
 parser.add_argument('--netG', default='', help="path to netG (to continue training)")
 parser.add_argument('--netE', default="EdgePredictWeight/netG_epoch_33.pth", help="path to netE (to continue training)")
 parser.add_argument('--batchSize', type=int, default=1, help='input batch size')
-parser.add_argument('--originalSize', type=int,
-  default=532, help='the height / width of the original input image')
-parser.add_argument('--imageSize', type=int,
-  default=512, help='the height / width of the cropped input image to network')
+parser.add_argument('--originalSize', type=int, default=532, help='the height / width of the original input image')
+parser.add_argument('--imageSize', type=int, default=512, help='the height / width of the cropped input image to network')
 parser.add_argument('--pre', type=str, default='', help='prefix of different dataset')
 parser.add_argument('--image_path', type=str, default='', help='path to save the generated vali image')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=1)
 parser.add_argument('--ngf', type=int, default=64)
 parser.add_argument('--ndf', type=int, default=64)
-parser.add_argument('--inputChannelSize', type=int,
-  default=3, help='size of the input channels')
-parser.add_argument('--outputChannelSize', type=int,
-  default=3, help='size of the output channels')
+parser.add_argument('--inputChannelSize', type=int, default=3, help='size of the input channels')
+parser.add_argument('--outputChannelSize', type=int, default=3, help='size of the output channels')
 parser.add_argument('--record', type=str, default='default.txt', help='prefix of different dataset')
 parser.add_argument('--number', type=int, default=10)
 parser.add_argument('--write', type=int, default=0, help='if write the results?')
+parser.add_argument('--classColor', type=str, default=0, help='classifier color model')
+parser.add_argument('--classGeo', type=str, default=0, help='classifier geo model')
 opt = parser.parse_args()
 print(opt)
-
-path_class_color = "./classifier/color_epoch_95.pth"
-path_class_geo = "./classifier/geo_epoch_95.pth"
 
 device = torch.device("cuda:0")
 
@@ -82,6 +75,10 @@ val_dataloader = getLoader(opt.dataset,
 inputChannelSize = opt.inputChannelSize
 outputChannelSize= opt.outputChannelSize
 
+target = torch.FloatTensor(opt.batchSize, outputChannelSize, opt.imageSize, opt.imageSize)
+input = torch.FloatTensor(opt.batchSize, inputChannelSize, opt.imageSize, opt.imageSize)
+target, input = target.to(device), input.to(device)
+
 netG=net.Single()
 netG.load_state_dict(torch.load(opt.netG))
 netG.eval()
@@ -92,17 +89,15 @@ netEdge.eval()
 netEdge.to(device)
 print(netG)
 
-target = torch.FloatTensor(opt.batchSize, outputChannelSize, opt.imageSize, opt.imageSize)
-input = torch.FloatTensor(opt.batchSize, inputChannelSize, opt.imageSize, opt.imageSize)
-target, input = target.to(device), input.to(device)
+
 
 # Classifiers
 net_label_color=net.vgg19ca()
-net_label_color.load_state_dict(torch.load(path_class_color))
+net_label_color.load_state_dict(torch.load(opt.classColor))
 net_label_color=net_label_color.to(device)
 
 net_label_geo = net.vgg19ca_2()
-net_label_geo.load_state_dict(torch.load(path_class_geo))
+net_label_geo.load_state_dict(torch.load(opt.classGeo))
 net_label_geo=net_label_geo.to(device)
 
 vcnt = 0
@@ -124,6 +119,7 @@ conv2.weight.data.copy_(torch.from_numpy(b))
 conv2.weight.requires_grad = False
 conv2.cuda()
 
+
 def gauss_kernel(kernlen=21, nsig=3, channels=1):
     interval = (2 * nsig + 1.) / (kernlen)
     x = np.linspace(-nsig - interval / 2., nsig + interval / 2., kernlen + 1)
@@ -135,15 +131,16 @@ def gauss_kernel(kernlen=21, nsig=3, channels=1):
     out_filter = np.repeat(out_filter, channels, axis=2)
     return out_filter
 
+
 # Gaussian blur
 g_kernel = gauss_kernel(3, 5, 1).transpose((3, 2, 1, 0))
-gauss_conv = nn.Conv2d(1, 1, kernel_size=3, stride=1, padding=3/2, bias=False)
+gauss_conv = nn.Conv2d(1, 1, kernel_size=3, stride=1, padding=(2,2), bias=False)
 gauss_conv.weight.data.copy_(torch.from_numpy(g_kernel))
 gauss_conv.weight.requires_grad = False
 gauss_conv.cuda()
 
 
-for i, data in enumerate(val_dataloader, 0):
+for i, data in enumerate(val_dataloader):
 
     input_cpu, target_cpu = data
     batch_size = target_cpu.size(0)
@@ -204,4 +201,3 @@ for i, data in enumerate(val_dataloader, 0):
     print(50*'-')
     print(vcnt)
     print(50*'-')
-
